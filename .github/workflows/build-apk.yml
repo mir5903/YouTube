@@ -1,48 +1,47 @@
-name: 🤖 Build Android APK
+name: Build Android APK
 
 on:
-  workflow_dispatch:  # Manual trigger button
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
-  build-apk:
-    name: 🔨 Build APK
+  build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📁 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🏗️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: 🔧 Setup EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: 📦 Install dependencies
-        run: |
-          npm install -g eas-cli
-          npm install
-
-      - name: ⚙️ Configure EAS (if needed)
-        run: |
-          if [ ! -f eas.json ]; then
-            eas build:configure --non-interactive
-          fi
-
-      - name: 🚀 Build Android APK
-        run: |
-          eas build --platform android --profile preview --non-interactive
-
-      - name: 📋 Show build info
-        run: |
-          echo "✅ Build completed!"
-          echo "📱 Download your APK from: https://expo.dev/builds"
-          eas build:list --json --limit=1
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        cd apps/mobile
+        npm install
+    
+    - name: Setup EAS CLI
+      run: npm install -g @expo/eas-cli
+    
+    - name: Configure EAS (if needed)
+      run: |
+        cd apps/mobile
+        echo "Creating eas.json if it doesn't exist"
+        if [ ! -f eas.json ]; then
+          echo '{"cli":{"version":">= 5.2.0"},"build":{"preview":{"android":{"buildType":"apk"}},"production":{"android":{"buildType":"apk"}}}}' > eas.json
+        fi
+    
+    - name: Build Android APK
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      run: |
+        cd apps/mobile
+        eas build --platform android --profile preview --non-interactive
+    
+    - name: Show build info
+      run: echo "Build completed. Check EAS dashboard for download link."
